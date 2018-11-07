@@ -1,0 +1,66 @@
+---
+title: "Boston Map Using Leaflet"
+author: "Qianhui Rong"
+date: "11/7/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Using Leaflet to make a map
+```{r}
+mayorsfoodcourt <- read.csv("mayorsfoodcourt.csv")
+```
+
+```{r}
+library(leaflet)
+library(dplyr)
+library(stringr)
+
+mayorsfoodcourt %>% 
+  filter(is.na(mayorsfoodcourt$Location)==FALSE) %>% 
+  select(businessName,LICENSENO,LICSTATUS,RESULT,ViolLevel,ViolStatus,Location) %>%
+  filter(LICSTATUS == "Active") -> act_Court
+
+#Manipulate latitude/longitude column to leaflet readable version
+latitude <- str_sub(act_Court$Location,2,13)
+longitude <- str_sub(act_Court$Location,16,28)
+latitude <- as.numeric(latitude)
+longitude <- as.numeric(longitude)
+
+locat_data <- cbind(act_Court,latitude,longitude)
+locat_data$ViolStatus <- ifelse(locat_data$ViolStatus=="Pass",1,0)
+locat_data %>% 
+  select(businessName,ViolStatus,LICENSENO,latitude,longitude) %>% 
+  group_by(businessName,LICENSENO,latitude,longitude) %>% 
+  summarise(Pass_Fail=mean(ViolStatus)) %>% 
+  filter(is.na(latitude)==FALSE & is.na(longitude)==FALSE) -> new_locat_data
+
+# leaflet(locat_data)%>%
+#   addProviderTiles("Esri.WorldStreetMap")%>%
+#   setView(-71.13062, 42.35308, zoom=12)%>%
+#   addMarkers(~as.numeric(latitude),~as.numeric(longitude),popup=~businessName)
+
+#Using different emoji to represent different types of comments
+redIcon1 <- makeIcon(
+  iconUrl = "https://banner2.kisspng.com/20180314/gxq/kisspng-smiley-face-animation-happy-laugh-5aa93331c2b5c6.9500361315210381297975.jpg",
+  iconWidth = 15, iconHeight = 15,
+  iconAnchorX = 10, iconAnchorY = 10
+)
+
+redIcon2 <- makeIcon(
+  iconUrl = "https://banner2.kisspng.com/20180204/txw/kisspng-smiley-emoticon-sadness-animation-clip-art-sad-emoji-transparent-background-5a77ade67d5c50.7557782815177927425135.jpg",
+  iconWidth = 15, iconHeight = 15,
+  iconAnchorX = 10, iconAnchorY = 10
+)
+
+leaflet(locat_data)%>%
+  leaflet()%>%
+  addTiles()%>%
+  setView(-71.13062, 42.35308, zoom = 12)%>%
+  addMarkers(data=new_locat_data[new_locat_data$Pass_Fail>0.5,],popup=~businessName,icon = redIcon1)%>%
+  addMarkers(data=new_locat_data[new_locat_data$Pass_Fail<=0.5,],popup=~businessName,icon = redIcon2)
+
+```
