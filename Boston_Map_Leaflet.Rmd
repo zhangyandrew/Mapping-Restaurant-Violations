@@ -2,7 +2,9 @@
 title: "Boston Map Using Leaflet"
 author: "Qianhui Rong"
 date: "11/7/2018"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -21,7 +23,7 @@ library(stringr)
 
 mayorsfoodcourt %>% 
   filter(is.na(mayorsfoodcourt$Location)==FALSE) %>% 
-  select(businessName,LICENSENO,LICSTATUS,RESULT,ViolLevel,ViolStatus,Location) %>%
+  select(businessName,Address,LICENSENO,LICSTATUS,RESULT,ViolLevel,ViolStatus,Location) %>%
   filter(LICSTATUS == "Active") -> act_Court
 
 #Manipulate latitude/longitude column to leaflet readable version
@@ -33,8 +35,8 @@ longitude <- as.numeric(longitude)
 locat_data <- cbind(act_Court,latitude,longitude)
 locat_data$ViolStatus <- ifelse(locat_data$ViolStatus=="Pass",1,0)
 locat_data %>% 
-  select(businessName,ViolStatus,LICENSENO,latitude,longitude) %>% 
-  group_by(businessName,LICENSENO,latitude,longitude) %>% 
+  select(businessName,Address,ViolStatus,LICENSENO,latitude,longitude) %>% 
+  group_by(businessName,Address,LICENSENO,latitude,longitude) %>% 
   summarise(Pass_Fail=mean(ViolStatus)) %>% 
   filter(is.na(latitude)==FALSE & is.na(longitude)==FALSE) -> new_locat_data
 
@@ -45,17 +47,18 @@ locat_data %>%
 
 #Using different emoji to represent different types of comments
 redIcon1 <- makeIcon(
-  iconUrl = "https://banner2.kisspng.com/20180314/gxq/kisspng-smiley-face-animation-happy-laugh-5aa93331c2b5c6.9500361315210381297975.jpg",
+  iconUrl = "https://www.freeiconspng.com/uploads/red-restaurant-icon-15.png",
   iconWidth = 15, iconHeight = 15,
   iconAnchorX = 10, iconAnchorY = 10
 )
 
 redIcon2 <- makeIcon(
-  iconUrl = "https://banner2.kisspng.com/20180204/txw/kisspng-smiley-emoticon-sadness-animation-clip-art-sad-emoji-transparent-background-5a77ade67d5c50.7557782815177927425135.jpg",
+  iconUrl = "https://www.freeiconspng.com/uploads/food-fork-knife-lunch-restaurant-icon--22.png",
   iconWidth = 15, iconHeight = 15,
   iconAnchorX = 10, iconAnchorY = 10
 )
 
+#On the map, we have green icon which means fail, red icon which means pass.
 leaflet(locat_data)%>%
   leaflet()%>%
   addTiles()%>%
